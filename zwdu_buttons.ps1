@@ -33,23 +33,24 @@ $btnRun.Add_Click(
         $txtArea.Text = $html
         $block = [regex]::Match($html, 'id="list"[\s\S]*?div')
         $chs.Controls.Clear()
-        foreach ($a in [regex]::Matches($block.Value, 'href="(.*?)">(.*?)<')) {
-            $b = (New-Object System.Windows.Forms.Button -Property @{
-                    TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
-                    Text      = $a.Groups[2].Value
-                    Width     = 200
-                    Height    = 30
-                })
-            $url = "https://www.zwdu.com$($a.Groups[1].Value)"
-            $txt = $txtArea
-            $b.Add_Click(
-                {
-                    $resp = Invoke-WebRequest $url -UseBasicParsing
-                    $html = [system.Text.Encoding]::GetEncoding("gbk").GetString($resp.RawContentStream.ToArray())
-                    $txt.Text = [regex]::Match($html, 'id="content">([\s\S]*?)<div').Groups[1].Value.Replace('&nbsp;', ' ').Replace('<br />', "`n")
-                }.GetNewClosure())
-            $chs.Controls.Add($b)
-        }
+        $chs.Controls.AddRange(
+            ([regex]::Matches($block.Value, 'href="(.*?)">(.*?)<') | ForEach-Object {
+                    $b = New-Object System.Windows.Forms.Button -Property @{
+                        TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
+                        Text      = $_.Groups[2].Value
+                        Width     = 200
+                        Height    = 30
+                    }
+                    $url = "https://www.zwdu.com" + $_.Groups[1].Value
+                    $txt = $txtArea
+                    $b.Add_Click(
+                        {
+                            $resp = Invoke-WebRequest $url -UseBasicParsing
+                            $html = [system.Text.Encoding]::GetEncoding("gbk").GetString($resp.RawContentStream.ToArray())
+                            $txt.Text = [regex]::Match($html, 'id="content">([\s\S]*?)<div').Groups[1].Value.Replace('&nbsp;', ' ').Replace('<br />', "`n")
+                        }.GetNewClosure())
+                    return $b
+                }))
     })
 
 $form.ShowDialog()
